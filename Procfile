@@ -1,1 +1,1 @@
-web: gunicorn wsgi:app --preload --timeout 600
+web: gunicorn wsgi:app --timeout 600
