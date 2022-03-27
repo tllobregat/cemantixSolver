@@ -1,13 +1,13 @@
+from flask import Flask
 from time import sleep
 from gensim.models import KeyedVectors
 import requests
-import flask
 
-app = flask.Flask(__name__)
-app.config["DEBUG"] = True
+
+app = Flask(__name__)
 
 print("Loading word")
-model = KeyedVectors.load_word2vec_format("frWac_non_lem_no_postag_no_phrase_200_cbow_cut100.bin", binary=True, unicode_errors="ignore")
+model = KeyedVectors.load_word2vec_format("https://embeddings.net/embeddings/frWac_non_lem_no_postag_no_phrase_200_cbow_cut100.bin", binary=True, unicode_errors="ignore")
 print("Loading complete")
 
 random_tried = 'truc'
@@ -37,7 +37,3 @@ def home():
         'response': requests.post('https://cemantix.herokuapp.com/score', data = {'word': word_to_try}).json(),
         'word': word_to_try
     }
-
-app.run()
-
-
