@@ -8,7 +8,7 @@ from time import sleep
 app = Flask(__name__)
 
 class Utils:
-    # model_url = "https://embeddings.net/embeddings/frWac_non_lem_no_postag_no_phrase_200_cbow_cut100.bin"
+    # model_url = "https://embeddings.net/embeddings/frWac_non_lem_no_postag_no_phrase_200_skip_cut100.bin"
     model_url = "frWac_non_lem_no_postag_no_phrase_200_skip_cut100.bin"
     loading = False
     today_s_word = ''
@@ -37,8 +37,12 @@ class Utils:
         return abs(abs(score_1) - abs(score_2)) < difference
 
 
+    def mapToList(mapContainer):
+        return map(lambda l: l['word'], mapContainer)
+
+
     def findTodaysWord(model):
-        starter = 'médecin'
+        starter = 'ville'
         starter_guess = Utils.guess(starter)
         word_tried = [{'word': starter, 'guess': starter_guess}]
         word_denied = []
@@ -46,11 +50,11 @@ class Utils:
 
         difference_to_test = 0.0001
         while word_found == '':
-            init_tried_len = len(word_tried)
+            init_tried = sorted(Utils.mapToList(word_tried))
             print(f"Testing with difference {difference_to_test} for words {word_tried}")
 
             for word in model.index_to_key :
-                if word not in map(lambda w: w['word'], word_tried) and word not in word_denied:
+                if word not in Utils.mapToList(word_tried) and word not in word_denied:
                     word_worth_try = True
 
                     for index in range(len(word_tried)):
@@ -72,7 +76,10 @@ class Utils:
                         else:
                             word_denied.append(word)
 
-            if init_tried_len != len(word_tried):
+            if len(word_tried) > 5:
+                word_tried = sorted(word_tried, key=lambda w: w['guess'], reverse=True)[:5]
+
+            if init_tried != sorted(Utils.mapToList(word_tried)):
                 difference_to_test = 0.001
             else:
                 difference_to_test *= 2
@@ -97,16 +104,27 @@ def init():
     return Utils.initForNewDay()
 
 @app.route('/', methods=['GET'])
-def home():
+def nospoil():
     if Utils.loading:
         return "App is loading, please wait a sec"
     elif Utils.today_s_word == '':
         return "App did not found a word today"
     else:
         return {
-            'response': '', # requests.post('https://cemantix.herokuapp.com/score', data = {'word': word_to_try}).json(),
+            'word': 'Word found ! Go to /spoil to get spoiled',
+            'attempts': Utils.tried
+        }
+
+@app.route('/spoil', methods=['GET'])
+def spoil():
+    if Utils.loading:
+        return "App is loading, please wait a sec"
+    elif Utils.today_s_word == '':
+        return "App did not found a word today"
+    else:
+        return {
             'word': Utils.today_s_word,
-            'attempt': Utils.tried
+            'attempts': Utils.tried
         }
 
 
