@@ -75,8 +75,8 @@ class Utils:
                         else:
                             word_denied.append(word)
 
-            if len(filter(lambda l: l['guess'] > 0.2, word_tried)) > 0:
-                word_tried = filter(lambda l: l['guess'] > 0.2, word_tried)
+            if len(list(filter(lambda l: l['guess'] > 0.2, word_tried))) > 0:
+                word_tried = list(filter(lambda l: l['guess'] > 0.2, word_tried))
 
             if init_tried != sorted(Utils.mapToList(word_tried)):
                 difference_to_test = 0.001
