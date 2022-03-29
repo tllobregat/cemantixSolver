@@ -49,7 +49,6 @@ class Utils:
 
         difference_to_test = 0.0001
         while word_found == '':
-            init_tried = sorted(Utils.mapToList(word_tried))
             print(f"Testing with difference {difference_to_test} for words {word_tried}")
 
             for word in model.index_to_key :
@@ -72,16 +71,14 @@ class Utils:
                             if guess > 0.99:
                                 word_found = word
                                 break
+
+                            if len(list(filter(lambda l: l['guess'] > 0.2, word_tried))) > 0:
+                                word_tried = list(filter(lambda l: l['guess'] > 0.2, word_tried))
+                                break
                         else:
                             word_denied.append(word)
 
-            if len(list(filter(lambda l: l['guess'] > 0.2, word_tried))) > 0:
-                word_tried = list(filter(lambda l: l['guess'] > 0.2, word_tried))
-
-            if init_tried != sorted(Utils.mapToList(word_tried)):
-                difference_to_test = 0.001
-            else:
-                difference_to_test *= 2
+            difference_to_test *= 2
 
         return word_found
 
