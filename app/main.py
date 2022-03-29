@@ -74,7 +74,9 @@ class Utils:
 
                             if len(list(filter(lambda l: l['guess'] > 0.2, word_tried))) > 0:
                                 word_tried = list(filter(lambda l: l['guess'] > 0.2, word_tried))
-                                break
+                            
+                            difference_to_test = 0.0001
+                            break
                         else:
                             word_denied.append(word)
 
