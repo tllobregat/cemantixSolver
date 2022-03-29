@@ -116,10 +116,8 @@ def nospoil():
 
 @app.route('/spoil', methods=['GET'])
 def spoil():
-    if Utils.loading:
-        return "App is loading, please wait a sec"
-    elif Utils.today_s_word == '':
-        return "App did not found a word today"
+    if Utils.today_s_word == '':
+        return f"App is loading, please wait a sec. (Current attempts : {Utils.tried}"
     else:
         return {
             'word': Utils.today_s_word,
