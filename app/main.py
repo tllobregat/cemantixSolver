@@ -75,8 +75,8 @@ class Utils:
                         else:
                             word_denied.append(word)
 
-            if len(word_tried) > 5:
-                word_tried = sorted(word_tried, key=lambda w: w['guess'], reverse=True)[:5]
+            if len(filter(lambda l: l['guess'] > 0.2, word_tried)) > 0:
+                word_tried = filter(lambda l: l['guess'] > 0.2, word_tried)
 
             if init_tried != sorted(Utils.mapToList(word_tried)):
                 difference_to_test = 0.001
@@ -104,13 +104,11 @@ def init():
 
 @app.route('/', methods=['GET'])
 def nospoil():
-    if Utils.loading:
-        return "App is loading, please wait a sec"
-    elif Utils.today_s_word == '':
-        return "App did not found a word today"
+    if Utils.today_s_word == '':
+        return f"App is loading, please wait a sec. (Current attempts : {Utils.tried}"
     else:
         return {
-            'word': 'Word found ! Go to /spoil to get spoiled',
+            'word': 'found ! Go to /spoil to get spoiled',
             'attempts': Utils.tried
         }
 
