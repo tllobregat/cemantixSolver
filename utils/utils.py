@@ -8,7 +8,7 @@ def reset():
     vars.tried = 0
 
 
-def guess(word):
+def guessWord(word):
     vars.tried += 1
     req = requests.post('https://cemantix.herokuapp.com/score', data = {'word': word}).json()
     if 'score' in req:
@@ -42,7 +42,7 @@ def isWordWorthToTry(word_tried, model, word, difference_to_test):
 
 
 def findTodaysWord(starter, model):
-    starter_guess = guess(starter)
+    starter_guess = guessWord(starter)
     word_tried = [{'word': starter, 'guess': starter_guess}]
     word_denied = []
     word_found = ''
@@ -61,7 +61,7 @@ def findTodaysWord(starter, model):
         if len(words_worth_to_try) > 0:
             word = sorted(words_worth_to_try, key=lambda w: w['total'])[0]['word']
 
-            guess = guess(word)
+            guess = guessWord(word)
             if guess != -1000:
                 word_tried.append({'word': word, 'guess': guess})
                 print(f"Word may be {word} : {guess}")
