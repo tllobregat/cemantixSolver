@@ -1,6 +1,6 @@
 from gensim.models import KeyedVectors
 import requests
-import vars
+from vars import vars
 
 
 def reset():
