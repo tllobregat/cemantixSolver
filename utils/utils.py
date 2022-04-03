@@ -22,10 +22,11 @@ def save_to_db(word_found, index_history, start_search):
     database_url = os.environ['DATABASE_URL']
     conn = psycopg2.connect(database_url, sslmode='require')
 
-    sql = """INSERT INTO history(date, word, index_history, time_to_resolution) values (%s, %s, %s, %s);"""
+    sql = """INSERT INTO history(date, word, index_history, time_to_resolution, algorithm_version) """ + \
+          """values (%s, %s, %s, %s, %s);"""
 
     cur = conn.cursor()
-    cur.execute(sql, (datetime.now(), word_found, index_history, time.process_time() - start_search))
+    cur.execute(sql, (datetime.now(), word_found, index_history, time.process_time() - start_search), 1)
 
     conn.commit()
     cur.close()
