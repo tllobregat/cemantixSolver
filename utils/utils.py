@@ -26,7 +26,7 @@ def save_to_db(word_found, index_history, start_search):
           """values (%s, %s, %s, %s, %s);"""
 
     cur = conn.cursor()
-    cur.execute(sql, (datetime.now(), word_found, index_history, time.process_time() - start_search), 1)
+    cur.execute(sql, (datetime.now(), word_found, index_history, time.process_time() - start_search, 1))
 
     conn.commit()
     cur.close()
