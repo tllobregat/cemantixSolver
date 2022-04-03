@@ -1,97 +1,116 @@
-from gensim.models import KeyedVectors
+import time
+
 import requests
-from vars import vars
+import os
+import psycopg2
+
+from datetime import datetime
+from time import sleep
+from gensim.models import KeyedVectors
 
 
-def reset():
-    vars.today_s_word = ''
-    vars.tried = 0
-
-
-def guessWord(word):
-    vars.tried += 1
-    req = requests.post('https://cemantix.herokuapp.com/score', data = {'word': word}).json()
+def guess_word(word):
+    req = requests.post('https://cemantix.herokuapp.com/score', data={'word': word}).json()
+    sleep(2.0)
     if 'score' in req:
         return req['score']
-            
+
     return -1000
 
 
-def computeEcart(score_1, score_2):
-    return abs(score_1 - score_2)
+def save_to_db(word_found, index_history, start_search):
+    database_url = os.environ['DATABASE_URL']
+    conn = psycopg2.connect(database_url, sslmode='require')
+
+    sql = """INSERT INTO history(date, word, index_history, time_to_resolution) values (%s, %s, %s, %s);"""
+
+    cur = conn.cursor()
+    cur.execute(sql, (datetime.now(), word_found, index_history, time.process_time() - start_search))
+
+    conn.commit()
+    cur.close()
 
 
-def mapToList(mapContainer):
-    return map(lambda l: l['word'], mapContainer)
+def get_todays_row():
+    database_url = os.environ['DATABASE_URL']
+    conn = psycopg2.connect(database_url, sslmode='require')
+
+    sql = """SELECT * FROM history order by date DESC limit 1"""
+
+    cur = conn.cursor()
+    cur.execute(sql)
+    row = cur.fetchone()
+
+    conn.commit()
+    cur.close()
+
+    return row
 
 
-def isWordWorthToTry(word_tried, model, word, difference_to_test):
-    word_worth_try = True
-    total_similarity = 0
+def get_all_rows():
+    database_url = os.environ['DATABASE_URL']
+    conn = psycopg2.connect(database_url, sslmode='require')
 
-    for index in range(len(word_tried)):
-        similarity = model.similarity(word, word_tried[index]['word'])
-        ecart = computeEcart(similarity, word_tried[index]['guess'])
-        total_similarity += ecart
+    sql = """SELECT * FROM history order by date DESC"""
 
-        if ecart > difference_to_test:
-            word_worth_try = False
-            break
+    cur = conn.cursor()
+    cur.execute(sql)
+    row = cur.fetchall()
 
-    return word_worth_try, total_similarity
+    conn.commit()
+    cur.close()
 
-
-def findTodaysWord(starter, model):
-    starter_guess = guessWord(starter)
-    word_tried = [{'word': starter, 'guess': starter_guess}]
-    word_denied = []
-    word_found = ''
-
-    difference_to_test = 0.005
-    while word_found == '':
-        words_worth_to_try = []
-        print(f"Testing with difference {difference_to_test} for words {word_tried}")
-
-        for word in model.index_to_key :
-            if word not in mapToList(word_tried) and word not in word_denied and not word.endswith('es') and not word.endswith('ée') and not word.endswith('eaux'):
-                word_worth_to_try, total_similarity = isWordWorthToTry(word_tried, model, word, difference_to_test)
-                if word_worth_to_try:
-                    words_worth_to_try.append({'word': word, 'total': total_similarity})
-
-        if len(words_worth_to_try) > 0:
-            word = sorted(words_worth_to_try, key=lambda w: w['total'])[0]['word']
-
-            guess = guessWord(word)
-            if guess != -1000:
-                word_tried.append({'word': word, 'guess': guess})
-                print(f"Word may be {word} : {guess}")
-
-                if guess > 0.99:
-                    word_found = word
-                    break
-
-                if guess > 0.2:
-                    if len(list(filter(lambda l: l['guess'] > 0.2, word_tried))) > 0:
-                        word_tried = list(filter(lambda l: l['guess'] > 0.2, word_tried))
-                                    
-                    difference_to_test = 0.001
-            else:
-                word_denied.append(word)
-                        
-
-        difference_to_test *= 2
-
-    print(word_denied)
-
-    return word_found
+    return row
 
 
-def initForNewDay(starter):
-    print("Initializing for new day")
-    reset()
-
+def get_today_s_word(starter):
+    guess = guess_word(starter)
     print("Loading model")
-    model = KeyedVectors.load_word2vec_format(vars.model_url, binary=True, unicode_errors="ignore")
+    model = KeyedVectors.load_word2vec_format(
+        "https://embeddings.net/embeddings/frWac_non_lem_no_postag_no_phrase_200_cbow_cut100.bin",
+        binary=True,
+        unicode_errors="ignore"
+    )
+    print("Model loaded")
 
-    vars.today_s_word = findTodaysWord(starter, model)
-    return vars.today_s_word
+    word_tried = [{'word': starter, 'guess': guess}]
+
+    print("Loading word_filtered")
+    with open('word_filtered.txt', 'r', encoding='utf-8') as file:
+        word_filtered = file.read().split(',')
+    print("Word filtered loaded")
+
+    similarity_to_know_words = [{
+        'word': word,
+        'guess': 0,
+    } for word in word_filtered]
+
+    similarities_history = []
+
+    start_search = time.process_time()
+    while guess < 1:
+        current_similarity_to_known_words = [{
+            'word': word,
+            'guess': abs(guess - model.similarity(word_tried[-1]['word'], word))
+        } for word in word_filtered]
+
+        similarity_to_know_words = [{
+            'word': x['word'],
+            'guess': x['guess'] + y['guess']
+        } for x, y in zip(current_similarity_to_known_words, similarity_to_know_words)]
+
+        sorted_similarity_to_know_words = sorted(similarity_to_know_words, key=lambda s: s['guess'])
+
+        print(f"Trying word : {sorted_similarity_to_know_words[0]['word']}")
+        guess = guess_word(sorted_similarity_to_know_words[0]['word'])
+        print(f"Similarity is : {guess}")
+        similarities_history.append(sorted_similarity_to_know_words)
+        word_tried.append({'word': sorted_similarity_to_know_words[0]['word'], 'guess': guess})
+
+    word_found = word_tried[-1]['word']
+
+    index_history = [list(map(lambda l: l['word'], history)).index(word_found) for history in similarities_history]
+
+    save_to_db(word_found, str(index_history), start_search)
+
+    return f"Trouvé ! {word_found}. Index history is : {index_history}"

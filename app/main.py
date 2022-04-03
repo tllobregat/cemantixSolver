@@ -1,32 +1,44 @@
 from flask import Flask, request
 from utils import utils
-from vars import vars
 
 app = Flask(__name__)
+
 
 @app.route('/init', methods=['GET'])
 def init():
     args = request.args
-    return utils.initForNewDay(args.get("starter"))
+    return utils.get_today_s_word(args.get("starter"))
+
 
 @app.route('/', methods=['GET'])
-def nospoil():
-    if vars.today_s_word == '':
-        return f"App is loading, please wait a sec. (Current attempts : {vars.tried})"
-    else:
-        return {
-            'word': 'found ! Go to /spoil to get spoiled',
-            'attempts': utils.tried
-        }
+def no_spoil():
+    row = utils.get_todays_row()
+    return {
+        'word': "go to /spoil to get spoiled",
+        'index_history': row[2],
+        'time_to_resolution': f"{row[3]} s",
+    }
+
 
 @app.route('/spoil', methods=['GET'])
 def spoil():
-    if vars.today_s_word == '':
-        return f"App is loading, please wait a sec. (Current attempts : {vars.tried})"
-    else:
-        return {
-            'word': vars.today_s_word,
-            'attempts': vars.tried
-        }
+    row = utils.get_todays_row()
+    return {
+        'word': row[1],
+        'index_history': row[2],
+        'time_to_resolution': f"{row[3]} s",
+    }
 
 
+@app.route('/history', methods=['GET'])
+def history():
+    rows = utils.get_all_rows()
+    return {
+        'history': [
+            {
+                'word': row[1],
+                'index_history': row[2],
+                'time_to_resolution': f"{row[3]} s",
+            } for row in rows
+        ]
+    }
