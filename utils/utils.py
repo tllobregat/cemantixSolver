@@ -89,7 +89,9 @@ def get_today_s_word(starter):
     similarities_history = []
 
     start_search = time.process_time()
-    while guess < 1:
+    attempts = 0
+    while guess < 1 and attempts < 50:
+        attempts += 1
         current_similarity_to_known_words = [{
             'word': word,
             'guess': abs(guess - model.similarity(word_tried[-1]['word'], word))
@@ -102,11 +104,13 @@ def get_today_s_word(starter):
 
         sorted_similarity_to_know_words = sorted(similarity_to_know_words, key=lambda s: s['guess'])
 
-        print(f"Trying word : {sorted_similarity_to_know_words[0]['word']}")
-        guess = guess_word(sorted_similarity_to_know_words[0]['word'])
+        word_to_try = list(filter(lambda l: l['word'] not in word_tried, sorted_similarity_to_know_words))[0]['word']
+
+        print(f"Trying word : {word_to_try}")
+        guess = guess_word(word_to_try)
         print(f"Similarity is : {guess}")
         similarities_history.append(sorted_similarity_to_know_words)
-        word_tried.append({'word': sorted_similarity_to_know_words[0]['word'], 'guess': guess})
+        word_tried.append({'word': word_to_try, 'guess': guess})
 
     word_found = word_tried[-1]['word']
 
@@ -114,4 +118,4 @@ def get_today_s_word(starter):
 
     save_to_db(word_found, str(index_history), start_search)
 
-    return f"Trouvé ! {word_found}. Index history is : {index_history}"
+    return f"{'Pas trouvé :(' if guess < 1 else 'Trouvé :)'} ! {word_found}. Index history is : {index_history}"
