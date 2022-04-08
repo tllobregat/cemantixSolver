@@ -18,15 +18,20 @@ def guess_word(word):
     return -1000
 
 
-def save_to_db(word_found, index_history, start_search):
+def save_to_db(word_found, index_history, start_search, word_history, guess_history):
     database_url = os.environ['DATABASE_URL']
     conn = psycopg2.connect(database_url, sslmode='require')
 
-    sql = """INSERT INTO history(date, word, index_history, time_to_resolution, algorithm_version) """ + \
-          """values (%s, %s, %s, %s, %s);"""
+    sql = """INSERT INTO history(""" + \
+          """date, word, index_history, time_to_resolution, algorithm_version, word_history, guess_history""" + \
+          """) """ + \
+          """values (%s, %s, %s, %s, %s, %s, %s);"""
 
     cur = conn.cursor()
-    cur.execute(sql, (datetime.now(), word_found, index_history, time.process_time() - start_search, 1))
+    cur.execute(
+        sql,
+        (datetime.now(), word_found, index_history, time.process_time() - start_search, 2, word_history, guess_history)
+    )
 
     conn.commit()
     cur.close()
@@ -115,7 +120,9 @@ def get_today_s_word(starter):
     word_found = word_tried[-1]['word']
 
     index_history = [list(map(lambda l: l['word'], history)).index(word_found) for history in similarities_history]
+    word_history = list(map(lambda w: w['word'], word_tried))
+    guess_history = list(map(lambda w: w['guess'], word_tried))
 
-    save_to_db(word_found, str(index_history), start_search)
+    save_to_db(word_found, str(index_history), start_search, str(word_history), str(guess_history))
 
     return f"{'Pas trouvé :(' if guess < 1 else 'Trouvé :)'} ! {word_found}. Index history is : {index_history}"

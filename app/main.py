@@ -17,6 +17,8 @@ def no_spoil():
         'word': "go to /spoil to get spoiled",
         'index_history': row[2],
         'time_to_resolution': f"{row[3]} s",
+        'word_history': "go to /spoil to get spoiled",
+        'guess_history': row[6],
     }
 
 
@@ -27,6 +29,8 @@ def spoil():
         'word': row[1],
         'index_history': row[2],
         'time_to_resolution': f"{row[3]} s",
+        'word_history': row[5],
+        'guess_history': row[6],
     }
 
 
@@ -39,6 +43,8 @@ def history():
                 'word': row[1],
                 'index_history': row[2],
                 'time_to_resolution': f"{row[3]} s",
+                'word_history': row[5],
+                'guess_history': row[6],
             } for row in rows
         ]
     }
